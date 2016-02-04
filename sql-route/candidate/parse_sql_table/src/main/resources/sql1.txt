@@ -1,0 +1,24 @@
+select t3.*, ztd3.TypeDetailName as UseStateName
+  from (select t4.*, ztd4.TypeDetailName as AssistantUnitName
+          from (select t2.*, ztd2.TypeDetailName as UnitName
+                  from (select t1.*,
+                               ztd1.TypeDetailName as MaterielAttributeName
+                          from (select m.*,
+                                       r.RoutingName,
+                                       u.username,
+                                       mc.MoldClassName
+                                  from dbo.D_Materiel as m
+                                  left join dbo.D_Routing as r
+                                    on m.RoutingID = r.RoutingID
+                                  left join dbo.D_MoldClass as mc
+                                    on m.MoldClassID = mc.MoldClassID
+                                  left join dbo.D_User as u
+                                    on u.UserId = m.AddUserID) as t1
+                          left join dbo.D_Type_Detail as ztd1
+                            on t1.MaterielAttributeID = ztd1.TypeDetailID) as t2
+                  left join dbo.D_Type_Detail as ztd2
+                    on t2.UnitID = ztd2.TypeDetailID) as t4
+          left join dbo.D_Type_Detail as ztd4
+            on t4.AssistantUnitID = ztd4.TypeDetailID) as t3
+  left join dbo.D_Type_Detail as ztd3
+    on t3.UseState = ztd3.TypeDetailID

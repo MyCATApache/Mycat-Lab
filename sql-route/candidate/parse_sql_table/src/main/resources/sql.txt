@@ -1,0 +1,249 @@
+Select d.Fabric_No,
+       f.MachineName,
+       f.RawNo,
+       f.OldRawNo,
+       f.RawName,
+       f.StructCode,
+       p.WorkClass,
+       d.DefectType,
+       d.DefectName,
+       f.InspectResult,
+       Convert(Char(10), InspectDate, 20) As InspectDate,
+       (Case
+         When f.StructCode = 'JT' Then
+          Convert(Decimal(28, 2),
+                  (d.DefectEnd - d.DefectStart + 1) /
+                  dbo.f_JT_CalcMinValue(LPair, RPair) * Allow_Qty)
+         Else
+          (d.DefectEnd - d.DefectStart + 1)
+       End) As MLength,
+       (Case
+         When f.StructCode = 'JT' Then
+          ISNULL((Select SUM(DefectEnd)
+                   From FIInspectFabricDefects s
+                  Where DefectStart >= d.DefectStart
+                    And DefectStart <= d.DefectEnd
+                    And Fabric_No = d.Fabric_No
+                    And RecType = '疵点'),
+                 0.00)
+         Else
+          ISNULL((Select SUM(DefectEnd - DefectStart + 1)
+                   From FIInspectFabricDefects s
+                  Where DefectStart >= d.DefectStart
+                    And DefectStart <= d.DefectEnd
+                    And DefectEnd >= d.DefectStart
+                    And DefectEnd <= d.DefectEnd
+                    And Fabric_No = d.Fabric_No
+                    And RecType = '疵点'),
+                 0.00)
+       End) As DefectNum,
+       Convert(Decimal(28, 2),
+               (d.DefectEnd - d.DefectStart + 1.0) / (Case
+                 When f.StructCode = 'JT' Then
+                  dbo.f_JT_CalcMinValue(LPair, RPair)
+                 Else
+                  f.Allow_Qty
+               End) * f.Allow_Wt) As MWeight,
+       (Case
+         When f.StructCode = 'JT' Then
+          (Select B.DefectName
+             From (Select A.*,
+                          ROW_NUMBER() Over(Order By DefectNum Desc) As RecNo
+                     From (Select SUM(DefectBulk * DefectEnd) As DefectNum,
+                                  DefectName,
+                                  DefectType
+                             From FIInspectFabricDefects s
+                            Where s.RecType = '疵点'
+                              And s.Fabric_No = d.Fabric_No
+                              And s.DefectStart >= d.DefectStart
+                              And s.DefectStart <= d.DefectEnd
+                            Group By DefectType, DefectName) A) B
+            Where B.RecNo = 1)
+         Else
+          (Select B.DefectName
+             From (Select A.*,
+                          ROW_NUMBER() Over(Order By DefectNum Desc) As RecNo
+                     From (Select SUM(DefectBulk *
+                                      (DefectEnd - DefectStart + 1)) As DefectNum,
+                                  DefectName,
+                                  DefectType
+                             From FIInspectFabricDefects s
+                            Where s.RecType = '疵点'
+                              And s.Fabric_No = d.Fabric_No
+                              And s.DefectStart >= d.DefectStart
+                              And s.DefectStart <= d.DefectEnd
+                              And s.DefectEnd >= d.DefectStart
+                              And s.DefectEnd <= d.DefectEnd
+                            Group By DefectType, DefectName) A) B
+            Where B.RecNo = 1)
+       End) As OneDefectName,
+       (Case
+         When f.StructCode = 'JT' Then
+          (Select B.DefectNum
+             From (Select A.*,
+                          ROW_NUMBER() Over(Order By DefectNum Desc) As RecNo
+                     From (Select SUM(DefectBulk * DefectEnd) As DefectNum,
+                                  DefectName,
+                                  DefectType
+                             From FIInspectFabricDefects s
+                            Where s.RecType = '疵点'
+                              And s.Fabric_No = d.Fabric_No
+                              And s.DefectStart >= d.DefectStart
+                              And s.DefectStart <= d.DefectEnd
+                            Group By DefectType, DefectName) A) B
+            Where B.RecNo = 1)
+         Else
+          (Select B.DefectNum
+             From (Select A.*,
+                          ROW_NUMBER() Over(Order By DefectNum Desc) As RecNo
+                     From (Select SUM(DefectBulk *
+                                      (DefectEnd - DefectStart + 1)) As DefectNum,
+                                  DefectName,
+                                  DefectType
+                             From FIInspectFabricDefects s
+                            Where s.RecType = '疵点'
+                              And s.Fabric_No = d.Fabric_No
+                              And s.DefectStart >= d.DefectStart
+                              And s.DefectStart <= d.DefectEnd
+                              And s.DefectEnd >= d.DefectStart
+                              And s.DefectEnd <= d.DefectEnd
+                            Group By DefectType, DefectName) A) B
+            Where B.RecNo = 1)
+       End) As OneDefect,
+       (Case
+         When f.StructCode = 'JT' Then
+          (Select B.DefectName
+             From (Select A.*,
+                          ROW_NUMBER() Over(Order By DefectNum Desc) As RecNo
+                     From (Select SUM(DefectBulk * DefectEnd) As DefectNum,
+                                  DefectName,
+                                  DefectType
+                             From FIInspectFabricDefects s
+                            Where s.RecType = '疵点'
+                              And s.Fabric_No = d.Fabric_No
+                              And s.DefectStart >= d.DefectStart
+                              And s.DefectStart <= d.DefectEnd
+                            Group By DefectType, DefectName) A) B
+            Where B.RecNo = 2)
+         Else
+          (Select B.DefectName
+             From (Select A.*,
+                          ROW_NUMBER() Over(Order By DefectNum Desc) As RecNo
+                     From (Select SUM(DefectBulk *
+                                      (DefectEnd - DefectStart + 1)) As DefectNum,
+                                  DefectName,
+                                  DefectType
+                             From FIInspectFabricDefects s
+                            Where s.RecType = '疵点'
+                              And s.Fabric_No = d.Fabric_No
+                              And s.DefectStart >= d.DefectStart
+                              And s.DefectStart <= d.DefectEnd
+                              And s.DefectEnd >= d.DefectStart
+                              And s.DefectEnd <= d.DefectEnd
+                            Group By DefectType, DefectName) A) B
+            Where B.RecNo = 2)
+       End) As TwoDefectName,
+       (Case
+         When f.StructCode = 'JT' Then
+          (Select B.DefectNum
+             From (Select A.*,
+                          ROW_NUMBER() Over(Order By DefectNum Desc) As RecNo
+                     From (Select SUM(DefectBulk * DefectEnd) As DefectNum,
+                                  DefectName,
+                                  DefectType
+                             From FIInspectFabricDefects s
+                            Where s.RecType = '疵点'
+                              And s.Fabric_No = d.Fabric_No
+                              And s.DefectStart >= d.DefectStart
+                              And s.DefectStart <= d.DefectEnd
+                            Group By DefectType, DefectName) A) B
+            Where B.RecNo = 2)
+         Else
+          (Select B.DefectNum
+             From (Select A.*,
+                          ROW_NUMBER() Over(Order By DefectNum Desc) As RecNo
+                     From (Select SUM(DefectBulk *
+                                      (DefectEnd - DefectStart + 1)) As DefectNum,
+                                  DefectName,
+                                  DefectType
+                             From FIInspectFabricDefects s
+                            Where s.RecType = '疵点'
+                              And s.Fabric_No = d.Fabric_No
+                              And s.DefectStart >= d.DefectStart
+                              And s.DefectStart <= d.DefectEnd
+                              And s.DefectEnd >= d.DefectStart
+                              And s.DefectEnd <= d.DefectEnd
+                            Group By DefectType, DefectName) A) B
+            Where B.RecNo = 2)
+       End) As TwoDefect,
+       (Case
+         When f.StructCode = 'JT' Then
+          (Select B.DefectName
+             From (Select A.*,
+                          ROW_NUMBER() Over(Order By DefectNum Desc) As RecNo
+                     From (Select SUM(DefectBulk * DefectEnd) As DefectNum,
+                                  DefectName,
+                                  DefectType
+                             From FIInspectFabricDefects s
+                            Where s.RecType = '疵点'
+                              And s.Fabric_No = d.Fabric_No
+                              And s.DefectStart >= d.DefectStart
+                              And s.DefectStart <= d.DefectEnd
+                            Group By DefectType, DefectName) A) B
+            Where B.RecNo = 3)
+         Else
+          (Select B.DefectName
+             From (Select A.*,
+                          ROW_NUMBER() Over(Order By DefectNum Desc) As RecNo
+                     From (Select SUM(DefectBulk *
+                                      (DefectEnd - DefectStart + 1)) As DefectNum,
+                                  DefectName,
+                                  DefectType
+                             From FIInspectFabricDefects s
+                            Where s.RecType = '疵点'
+                              And s.Fabric_No = d.Fabric_No
+                              And s.DefectStart >= d.DefectStart
+                              And s.DefectStart <= d.DefectEnd
+                              And s.DefectEnd >= d.DefectStart
+                              And s.DefectEnd <= d.DefectEnd
+                            Group By DefectType, DefectName) A) B
+            Where B.RecNo = 3)
+       End) As ThreeDefectName,
+       (Case
+         When f.StructCode = 'JT' Then
+          (Select B.DefectNum
+             From (Select A.*,
+                          ROW_NUMBER() Over(Order By DefectNum Desc) As RecNo
+                     From (Select SUM(DefectBulk * DefectEnd) As DefectNum,
+                                  DefectName,
+                                  DefectType
+                             From FIInspectFabricDefects s
+                            Where s.RecType = '疵点'
+                              And s.Fabric_No = d.Fabric_No
+                              And s.DefectStart >= d.DefectStart
+                              And s.DefectStart <= d.DefectEnd
+                            Group By DefectType, DefectName) A) B
+            Where B.RecNo = 3)
+         Else
+          (Select B.DefectNum
+             From (Select A.*,
+                          ROW_NUMBER() Over(Order By DefectNum Desc) As RecNo
+                     From (Select SUM(DefectBulk *
+                                      (DefectEnd - DefectStart + 1)) As DefectNum,
+                                  DefectName,
+                                  DefectType
+                             From FIInspectFabricDefects s
+                            Where s.RecType = '疵点'
+                              And s.Fabric_No = d.Fabric_No
+                              And s.DefectStart >= d.DefectStart
+                              And s.DefectStart <= d.DefectEnd
+                              And s.DefectEnd >= d.DefectStart
+                              And s.DefectEnd <= d.DefectEnd
+                            Group By DefectType, DefectName) A) B
+            Where B.RecNo = 3)
+       End) As ThreeDefect
+  From FIInspectFabric f, FIInspectFabricDefects d, t_ORC_StanPersonSet P
+ Where d.RecType = '产量'
+   And d.DefectType = p.PNo
+   And f.Fabric_NO = d.Fabric_No
+ Order By d.Fabric_No, p.WorkClas
